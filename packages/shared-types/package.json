@@ -1,0 +1,1 @@
+{"name":"@ars/shared-types","version":"0.0.0","private":true,"type":"module","exports":"./src/index.js","scripts":{"lint":"eslint src","check":"node --check src/index.js","build":"node --check src/index.js","test":"vitest run --passWithNoTests"},"devDependencies":{"vitest":"^3.2.4"}}

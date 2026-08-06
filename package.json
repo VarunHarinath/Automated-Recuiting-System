@@ -1,0 +1,22 @@
+{
+  "name": "automated-recruitment-system",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --parallel --filter @ars/api --filter @ars/web dev",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "check": "pnpm -r check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2"
+  }
+}

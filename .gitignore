@@ -1,0 +1,15 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+.vite/
+.pytest_cache/
+.venv/
+__pycache__/
+*.py[cod]
+storage/*
+!storage/.gitkeep
+postgres-data/
