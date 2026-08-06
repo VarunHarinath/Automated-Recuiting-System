@@ -33,4 +33,3 @@ pnpm build
 docker compose config
 ```
 
-Phase 1 contains foundation and health checks only. Business modules begin in later approved phases.
