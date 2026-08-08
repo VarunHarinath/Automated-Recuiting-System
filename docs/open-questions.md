@@ -25,3 +25,16 @@ No temporary implementation assumptions are active in Phase 0. Questions are pri
 | OQ-019 | Audit/retention | What audit events are mandatory beyond the SRS, who may view them, and what retention/deletion rules apply to candidate files, communications, and audit records? | Affects privacy and storage lifecycle. | Before Phase 9 |
 | OQ-020 | Browser/accessibility | Which minimum browser versions and accessibility standard/level, if any, are acceptance targets? | Defines UI test matrix. | Before Phase 3 UI |
 
+## Database-phase disposition
+
+- OQ-002 was resolved for the database: the SRS wins, so applications have multiple screening results and interview rounds.
+- OQ-008 was partially resolved by this phase: required employment types are enumerated and readable codes use transaction-safe PostgreSQL sequences. Required-field policy beyond the provided model remains a Job-module decision.
+- OQ-009 was partially resolved: candidate email is required and normalized for lookup but deliberately non-unique.
+- OQ-012 was partially resolved: 50/25/15/10 is the persisted default configuration; detailed matching and recommendation thresholds remain open for screening implementation.
+- OQ-013 was resolved structurally: each re-screen creates a new result tied to its resume/configuration; override actor and reason are retained.
+- OQ-014 was partially resolved: ratings are 1–5 and technical/communication ratings are optional; conflict buffers remain open.
+
+## Authentication-module disposition
+
+- OQ-005 is partially resolved for the approved access-token scope: `JWT_EXPIRES_IN` defaults to 15 minutes, expiration is enforced by JWT verification, and logout is stateless/client-side token disposal. Refresh tokens, server-side revocation, inactivity timeout, password policy, and lockout remain unapproved and unimplemented.
+- OQ-006 remains open for future record-level authorization. This module establishes centralized role checks for `ADMINISTRATOR`, `RECRUITER`, and `INTERVIEWER`, but does not invent ownership rules for modules that are not yet implemented.

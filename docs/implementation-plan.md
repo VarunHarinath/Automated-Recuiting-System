@@ -33,7 +33,7 @@ Documentation only: inventory, SRS summary, modules, NFRs, structure, plan, ques
 
 ### Phase 1 — Foundation
 
-Create the modular JavaScript monorepo; configure linting, formatting, Docker Compose, PostgreSQL, environment documentation, health checks, and shared response/error conventions. JavaScript replaces the originally specified TypeScript stack by explicit user direction on 2026-08-05.
+Create the modular JavaScript/JSX application foundation; configure linting, formatting, Docker Compose, PostgreSQL, environment documentation, health checks, and shared response/error conventions. DEV-001 records this Phase 1 choice. DEV-002 later authorizes TypeScript specifically for database-layer files without converting the existing foundation.
 
 ### Phase 2 — Database and authentication
 

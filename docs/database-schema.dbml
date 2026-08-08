@@ -1,0 +1,74 @@
+// Diagram-compatible summary. Prisma schema and migration remain authoritative.
+Enum UserRole { ADMINISTRATOR RECRUITER INTERVIEWER }
+Enum JobStatus { OPEN ON_HOLD CLOSED }
+Enum EmploymentType { FULL_TIME PART_TIME CONTRACT INTERNSHIP TEMPORARY }
+Enum ApplicationStatus { APPLIED SCREENING SHORTLISTED INTERVIEW_SCHEDULED INTERVIEW_COMPLETED OFFER_SENT HIRED REJECTED WITHDRAWN }
+Enum InterviewMode { VIDEO PHONE IN_PERSON }
+Enum InterviewStatus { SCHEDULED COMPLETED CANCELLED RESCHEDULED }
+Enum InterviewRecommendation { STRONG_HIRE HIRE NEUTRAL NO_HIRE STRONG_NO_HIRE }
+Enum ResumeProcessingStatus { UPLOADED PROCESSING COMPLETED FAILED }
+Enum CommunicationType { INTERVIEW_INVITATION STATUS_UPDATE OFFER_LETTER REJECTION_LETTER GENERAL }
+Enum CommunicationStatus { DRAFT QUEUED SENT FAILED }
+Enum SkillRequirementType { REQUIRED PREFERRED }
+Enum CandidateSkillSource { RESUME MANUAL SCREENING }
+Enum InterviewHistoryAction { CREATED RESCHEDULED CANCELLED COMPLETED INTERVIEWER_CHANGED }
+
+Table User { id uuid [pk] firstName varchar lastName varchar email varchar [unique] passwordHash varchar role UserRole isActive boolean lastLoginAt timestamp createdAt timestamp updatedAt timestamp }
+Table Job { id uuid [pk] jobCode varchar [unique] title varchar department varchar description text location varchar employmentType EmploymentType minimumExperienceYears decimal maximumExperienceYears decimal salaryMinimum decimal salaryMaximum decimal currency char closingDate date status JobStatus closedAt timestamp createdById uuid createdAt timestamp updatedAt timestamp }
+Table Skill { id uuid [pk] name varchar normalizedName varchar [unique] createdAt timestamp updatedAt timestamp }
+Table JobSkill { id uuid [pk] jobId uuid skillId uuid requirementType SkillRequirementType minimumYears decimal weight decimal createdAt timestamp indexes { (jobId, skillId, requirementType) [unique] } }
+Table Candidate { id uuid [pk] firstName varchar lastName varchar email varchar normalizedEmail varchar phone varchar location varchar professionalSummary text totalExperienceYears decimal currentJobTitle varchar currentCompany varchar linkedinUrl varchar portfolioUrl varchar createdAt timestamp updatedAt timestamp deletedAt timestamp }
+Table CandidateSkill { id uuid [pk] candidateId uuid skillId uuid yearsOfExperience decimal proficiency varchar source CandidateSkillSource createdAt timestamp updatedAt timestamp indexes { (candidateId, skillId) [unique] } }
+Table CandidateEducation { id uuid [pk] candidateId uuid institution varchar degree varchar fieldOfStudy varchar startDate date endDate date isCurrentlyStudying boolean grade varchar description text createdAt timestamp updatedAt timestamp }
+Table CandidateExperience { id uuid [pk] candidateId uuid company varchar jobTitle varchar location varchar startDate date endDate date isCurrent boolean description text createdAt timestamp updatedAt timestamp }
+Table Resume { id uuid [pk] candidateId uuid originalFileName varchar storedFileName varchar storageKey varchar [unique] mimeType varchar fileSize bigint checksum varchar processingStatus ResumeProcessingStatus extractedText text parsedData json processingError text uploadedById uuid uploadedAt timestamp processedAt timestamp isPrimary boolean createdAt timestamp updatedAt timestamp }
+Table Application { id uuid [pk] applicationCode varchar [unique] candidateId uuid jobId uuid assignedRecruiterId uuid currentStatus ApplicationStatus source varchar appliedAt timestamp lastStatusChangedAt timestamp withdrawnAt timestamp rejectedAt timestamp hiredAt timestamp createdAt timestamp updatedAt timestamp indexes { (candidateId, jobId) [unique] } }
+Table ApplicationStatusHistory { id uuid [pk] applicationId uuid previousStatus ApplicationStatus newStatus ApplicationStatus changedById uuid reason text metadata json createdAt timestamp }
+Table ApplicationNote { id uuid [pk] applicationId uuid authorId uuid content text createdAt timestamp updatedAt timestamp deletedAt timestamp }
+Table ScreeningConfiguration { id uuid [pk] name varchar [unique] skillsWeight decimal experienceWeight decimal educationWeight decimal preferredCriteriaWeight decimal isDefault boolean createdById uuid createdAt timestamp updatedAt timestamp }
+Table ScreeningResult { id uuid [pk] applicationId uuid resumeId uuid configurationId uuid totalScore decimal skillsScore decimal experienceScore decimal educationScore decimal preferredCriteriaScore decimal matchedSkills json missingRequiredSkills json summary text recommendation varchar isOverridden boolean overrideReason text overriddenById uuid screenedAt timestamp createdAt timestamp updatedAt timestamp }
+Table ScreeningCriterionResult { id uuid [pk] screeningResultId uuid criterionType varchar criterionName varchar expectedValue json actualValue json matched boolean score decimal maximumScore decimal details json createdAt timestamp }
+Table Interview { id uuid [pk] applicationId uuid roundNumber int roundName varchar mode InterviewMode status InterviewStatus scheduledStart timestamp scheduledEnd timestamp timezone varchar location varchar meetingLink varchar cancellationReason text createdById uuid completedAt timestamp cancelledAt timestamp createdAt timestamp updatedAt timestamp indexes { (applicationId, roundNumber) [unique] } }
+Table InterviewInterviewer { id uuid [pk] interviewId uuid interviewerId uuid isPrimary boolean assignedAt timestamp indexes { (interviewId, interviewerId) [unique] } }
+Table InterviewFeedback { id uuid [pk] interviewId uuid interviewerId uuid overallRating int technicalRating int communicationRating int strengths text concerns text comments text recommendation InterviewRecommendation submittedAt timestamp createdAt timestamp updatedAt timestamp indexes { (interviewId, interviewerId) [unique] } }
+Table InterviewHistory { id uuid [pk] interviewId uuid action InterviewHistoryAction previousStart timestamp newStart timestamp previousEnd timestamp newEnd timestamp previousStatus InterviewStatus newStatus InterviewStatus changedById uuid reason text createdAt timestamp }
+Table EmailTemplate { id uuid [pk] name varchar type CommunicationType subjectTemplate varchar bodyTemplate text isActive boolean createdById uuid createdAt timestamp updatedAt timestamp indexes { (type, name) [unique] } }
+Table Communication { id uuid [pk] applicationId uuid candidateId uuid templateId uuid type CommunicationType status CommunicationStatus recipientEmail varchar subject varchar renderedBody text providerMessageId varchar failureReason text retryCount int sentById uuid queuedAt timestamp sentAt timestamp createdAt timestamp updatedAt timestamp }
+Table AuditLog { id uuid [pk] actorUserId uuid action varchar entityType varchar entityId varchar description text metadata json ipAddress varchar userAgent text createdAt timestamp }
+
+Ref: Job.createdById > User.id
+Ref: JobSkill.jobId > Job.id
+Ref: JobSkill.skillId > Skill.id
+Ref: CandidateSkill.candidateId > Candidate.id
+Ref: CandidateSkill.skillId > Skill.id
+Ref: CandidateEducation.candidateId > Candidate.id
+Ref: CandidateExperience.candidateId > Candidate.id
+Ref: Resume.candidateId > Candidate.id
+Ref: Resume.uploadedById > User.id
+Ref: Application.candidateId > Candidate.id
+Ref: Application.jobId > Job.id
+Ref: Application.assignedRecruiterId > User.id
+Ref: ApplicationStatusHistory.applicationId > Application.id
+Ref: ApplicationStatusHistory.changedById > User.id
+Ref: ApplicationNote.applicationId > Application.id
+Ref: ApplicationNote.authorId > User.id
+Ref: ScreeningConfiguration.createdById > User.id
+Ref: ScreeningResult.applicationId > Application.id
+Ref: ScreeningResult.resumeId > Resume.id
+Ref: ScreeningResult.configurationId > ScreeningConfiguration.id
+Ref: ScreeningResult.overriddenById > User.id
+Ref: ScreeningCriterionResult.screeningResultId > ScreeningResult.id
+Ref: Interview.applicationId > Application.id
+Ref: Interview.createdById > User.id
+Ref: InterviewInterviewer.interviewId > Interview.id
+Ref: InterviewInterviewer.interviewerId > User.id
+Ref: InterviewFeedback.interviewId > Interview.id
+Ref: InterviewFeedback.interviewerId > User.id
+Ref: InterviewHistory.interviewId > Interview.id
+Ref: InterviewHistory.changedById > User.id
+Ref: EmailTemplate.createdById > User.id
+Ref: Communication.applicationId > Application.id
+Ref: Communication.candidateId > Candidate.id
+Ref: Communication.templateId > EmailTemplate.id
+Ref: Communication.sentById > User.id
+Ref: AuditLog.actorUserId > User.id

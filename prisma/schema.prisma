@@ -1,0 +1,569 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMINISTRATOR
+  RECRUITER
+  INTERVIEWER
+}
+
+enum JobStatus {
+  OPEN
+  ON_HOLD
+  CLOSED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  TEMPORARY
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SCREENING
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  OFFER_SENT
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum InterviewMode {
+  VIDEO
+  PHONE
+  IN_PERSON
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum InterviewRecommendation {
+  STRONG_HIRE
+  HIRE
+  NEUTRAL
+  NO_HIRE
+  STRONG_NO_HIRE
+}
+
+enum ResumeProcessingStatus {
+  UPLOADED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum CommunicationType {
+  INTERVIEW_INVITATION
+  STATUS_UPDATE
+  OFFER_LETTER
+  REJECTION_LETTER
+  GENERAL
+}
+
+enum CommunicationStatus {
+  DRAFT
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum SkillRequirementType {
+  REQUIRED
+  PREFERRED
+}
+
+enum CandidateSkillSource {
+  RESUME
+  MANUAL
+  SCREENING
+}
+
+enum InterviewHistoryAction {
+  CREATED
+  RESCHEDULED
+  CANCELLED
+  COMPLETED
+  INTERVIEWER_CHANGED
+}
+
+model User {
+  id                      String                     @id @default(uuid()) @db.Uuid
+  firstName               String
+  lastName                String
+  email                   String                     @unique
+  passwordHash            String
+  role                    UserRole
+  isActive                Boolean                    @default(true)
+  lastLoginAt             DateTime?
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  jobsCreated             Job[]                      @relation("JobCreatedBy")
+  applicationsAssigned    Application[]              @relation("ApplicationRecruiter")
+  resumesUploaded         Resume[]                   @relation("ResumeUploadedBy")
+  statusChanges           ApplicationStatusHistory[] @relation("StatusChangedBy")
+  applicationNotes        ApplicationNote[]          @relation("NoteAuthor")
+  screeningConfigurations ScreeningConfiguration[]   @relation("ScreeningConfigCreatedBy")
+  screeningOverrides      ScreeningResult[]          @relation("ScreeningOverriddenBy")
+  interviewsCreated       Interview[]                @relation("InterviewCreatedBy")
+  interviewAssignments    InterviewInterviewer[]     @relation("InterviewAssignment")
+  interviewFeedback       InterviewFeedback[]        @relation("FeedbackInterviewer")
+  interviewHistoryChanges InterviewHistory[]         @relation("InterviewHistoryChangedBy")
+  emailTemplatesCreated   EmailTemplate[]            @relation("TemplateCreatedBy")
+  communicationsSent      Communication[]            @relation("CommunicationSentBy")
+  auditLogs               AuditLog[]                 @relation("AuditActor")
+
+  @@index([role, isActive])
+}
+
+model Job {
+  id                     String         @id @default(uuid()) @db.Uuid
+  jobCode                String         @unique @default(dbgenerated("generate_job_code()"))
+  title                  String
+  department             String
+  description            String
+  location               String
+  employmentType         EmploymentType
+  minimumExperienceYears Decimal        @db.Decimal(4, 1)
+  maximumExperienceYears Decimal?       @db.Decimal(4, 1)
+  salaryMinimum          Decimal?       @db.Decimal(14, 2)
+  salaryMaximum          Decimal?       @db.Decimal(14, 2)
+  currency               String?        @db.Char(3)
+  closingDate            DateTime?      @db.Date
+  status                 JobStatus      @default(OPEN)
+  closedAt               DateTime?
+  createdById            String         @db.Uuid
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  createdBy              User           @relation("JobCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  skills                 JobSkill[]
+  applications           Application[]
+
+  @@index([status])
+  @@index([department])
+  @@index([location])
+  @@index([closingDate])
+  @@index([createdById])
+}
+
+model Skill {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  normalizedName  String           @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  jobSkills       JobSkill[]
+  candidateSkills CandidateSkill[]
+}
+
+model JobSkill {
+  id              String               @id @default(uuid()) @db.Uuid
+  jobId           String               @db.Uuid
+  skillId         String               @db.Uuid
+  requirementType SkillRequirementType
+  minimumYears    Decimal?             @db.Decimal(4, 1)
+  weight          Decimal?             @db.Decimal(6, 2)
+  createdAt       DateTime             @default(now())
+  job             Job                  @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  skill           Skill                @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([jobId, skillId, requirementType])
+  @@index([skillId])
+}
+
+model Candidate {
+  id                   String                @id @default(uuid()) @db.Uuid
+  firstName            String
+  lastName             String
+  email                String
+  normalizedEmail      String
+  phone                String?
+  location             String?
+  professionalSummary  String?
+  totalExperienceYears Decimal?              @db.Decimal(4, 1)
+  currentJobTitle      String?
+  currentCompany       String?
+  linkedinUrl          String?
+  portfolioUrl         String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+  resumes              Resume[]
+  skills               CandidateSkill[]
+  education            CandidateEducation[]
+  experience           CandidateExperience[]
+  applications         Application[]
+  communications       Communication[]
+
+  @@index([normalizedEmail])
+  @@index([lastName, firstName])
+}
+
+model CandidateSkill {
+  id                String               @id @default(uuid()) @db.Uuid
+  candidateId       String               @db.Uuid
+  skillId           String               @db.Uuid
+  yearsOfExperience Decimal?             @db.Decimal(4, 1)
+  proficiency       String?
+  source            CandidateSkillSource
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  candidate         Candidate            @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  skill             Skill                @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([candidateId, skillId])
+  @@index([skillId])
+}
+
+model CandidateEducation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  candidateId         String    @db.Uuid
+  institution         String
+  degree              String?
+  fieldOfStudy        String?
+  startDate           DateTime? @db.Date
+  endDate             DateTime? @db.Date
+  isCurrentlyStudying Boolean   @default(false)
+  grade               String?
+  description         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  candidate           Candidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId])
+}
+
+model CandidateExperience {
+  id          String    @id @default(uuid()) @db.Uuid
+  candidateId String    @db.Uuid
+  company     String
+  jobTitle    String
+  location    String?
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+  isCurrent   Boolean   @default(false)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId])
+}
+
+model Resume {
+  id               String                 @id @default(uuid()) @db.Uuid
+  candidateId      String                 @db.Uuid
+  originalFileName String
+  storedFileName   String
+  storageKey       String                 @unique
+  mimeType         String
+  fileSize         BigInt
+  checksum         String
+  processingStatus ResumeProcessingStatus @default(UPLOADED)
+  extractedText    String?
+  parsedData       Json?
+  processingError  String?
+  uploadedById     String                 @db.Uuid
+  uploadedAt       DateTime               @default(now())
+  processedAt      DateTime?
+  isPrimary        Boolean                @default(false)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  candidate        Candidate              @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  uploadedBy       User                   @relation("ResumeUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+  screeningResults ScreeningResult[]
+
+  @@index([candidateId])
+  @@index([processingStatus])
+  @@index([uploadedAt])
+}
+
+model Application {
+  id                  String                     @id @default(uuid()) @db.Uuid
+  applicationCode     String                     @unique @default(dbgenerated("generate_application_code()"))
+  candidateId         String                     @db.Uuid
+  jobId               String                     @db.Uuid
+  assignedRecruiterId String?                    @db.Uuid
+  currentStatus       ApplicationStatus          @default(APPLIED)
+  source              String?
+  appliedAt           DateTime                   @default(now())
+  lastStatusChangedAt DateTime                   @default(now())
+  withdrawnAt         DateTime?
+  rejectedAt          DateTime?
+  hiredAt             DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  candidate           Candidate                  @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  job                 Job                        @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  assignedRecruiter   User?                      @relation("ApplicationRecruiter", fields: [assignedRecruiterId], references: [id], onDelete: Restrict)
+  statusHistory       ApplicationStatusHistory[]
+  screeningResults    ScreeningResult[]
+  interviews          Interview[]
+  communications      Communication[]
+  notes               ApplicationNote[]
+
+  @@unique([candidateId, jobId])
+  @@index([jobId])
+  @@index([candidateId])
+  @@index([assignedRecruiterId])
+  @@index([currentStatus])
+  @@index([appliedAt])
+}
+
+model ApplicationStatusHistory {
+  id             String             @id @default(uuid()) @db.Uuid
+  applicationId  String             @db.Uuid
+  previousStatus ApplicationStatus?
+  newStatus      ApplicationStatus
+  changedById    String             @db.Uuid
+  reason         String?
+  metadata       Json?
+  createdAt      DateTime           @default(now())
+  application    Application        @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  changedBy      User               @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([applicationId, createdAt])
+}
+
+model ApplicationNote {
+  id            String      @id @default(uuid()) @db.Uuid
+  applicationId String      @db.Uuid
+  authorId      String      @db.Uuid
+  content       String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  author        User        @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([applicationId, createdAt])
+  @@index([authorId])
+}
+
+model ScreeningConfiguration {
+  id                      String            @id @default(uuid()) @db.Uuid
+  name                    String            @unique
+  skillsWeight            Decimal           @default(50) @db.Decimal(5, 2)
+  experienceWeight        Decimal           @default(25) @db.Decimal(5, 2)
+  educationWeight         Decimal           @default(15) @db.Decimal(5, 2)
+  preferredCriteriaWeight Decimal           @default(10) @db.Decimal(5, 2)
+  isDefault               Boolean           @default(false)
+  createdById             String            @db.Uuid
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  createdBy               User              @relation("ScreeningConfigCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  screeningResults        ScreeningResult[]
+
+  @@index([createdById])
+}
+
+model ScreeningResult {
+  id                     String                     @id @default(uuid()) @db.Uuid
+  applicationId          String                     @db.Uuid
+  resumeId               String                     @db.Uuid
+  configurationId        String                     @db.Uuid
+  totalScore             Decimal                    @db.Decimal(5, 2)
+  skillsScore            Decimal                    @db.Decimal(5, 2)
+  experienceScore        Decimal                    @db.Decimal(5, 2)
+  educationScore         Decimal                    @db.Decimal(5, 2)
+  preferredCriteriaScore Decimal                    @db.Decimal(5, 2)
+  matchedSkills          Json
+  missingRequiredSkills  Json
+  summary                String
+  recommendation         String?
+  isOverridden           Boolean                    @default(false)
+  overrideReason         String?
+  overriddenById         String?                    @db.Uuid
+  screenedAt             DateTime                   @default(now())
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  application            Application                @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  resume                 Resume                     @relation(fields: [resumeId], references: [id], onDelete: Restrict)
+  configuration          ScreeningConfiguration     @relation(fields: [configurationId], references: [id], onDelete: Restrict)
+  overriddenBy           User?                      @relation("ScreeningOverriddenBy", fields: [overriddenById], references: [id], onDelete: SetNull)
+  criterionResults       ScreeningCriterionResult[]
+
+  @@index([applicationId, screenedAt])
+  @@index([resumeId])
+  @@index([configurationId])
+}
+
+model ScreeningCriterionResult {
+  id                String          @id @default(uuid()) @db.Uuid
+  screeningResultId String          @db.Uuid
+  criterionType     String
+  criterionName     String
+  expectedValue     Json?
+  actualValue       Json?
+  matched           Boolean
+  score             Decimal         @db.Decimal(5, 2)
+  maximumScore      Decimal         @db.Decimal(5, 2)
+  details           Json?
+  createdAt         DateTime        @default(now())
+  screeningResult   ScreeningResult @relation(fields: [screeningResultId], references: [id], onDelete: Restrict)
+
+  @@index([screeningResultId])
+}
+
+model Interview {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  applicationId      String                 @db.Uuid
+  roundNumber        Int
+  roundName          String?
+  mode               InterviewMode
+  status             InterviewStatus        @default(SCHEDULED)
+  scheduledStart     DateTime
+  scheduledEnd       DateTime
+  timezone           String
+  location           String?
+  meetingLink        String?
+  cancellationReason String?
+  createdById        String                 @db.Uuid
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  application        Application            @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  createdBy          User                   @relation("InterviewCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  interviewers       InterviewInterviewer[]
+  feedback           InterviewFeedback[]
+  history            InterviewHistory[]
+
+  @@unique([applicationId, roundNumber])
+  @@index([applicationId])
+  @@index([status])
+  @@index([scheduledStart])
+  @@index([createdById])
+}
+
+model InterviewInterviewer {
+  id            String    @id @default(uuid()) @db.Uuid
+  interviewId   String    @db.Uuid
+  interviewerId String    @db.Uuid
+  isPrimary     Boolean   @default(false)
+  assignedAt    DateTime  @default(now())
+  interview     Interview @relation(fields: [interviewId], references: [id], onDelete: Restrict)
+  interviewer   User      @relation("InterviewAssignment", fields: [interviewerId], references: [id], onDelete: Restrict)
+
+  @@unique([interviewId, interviewerId])
+  @@index([interviewerId])
+}
+
+model InterviewFeedback {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  interviewId         String                  @db.Uuid
+  interviewerId       String                  @db.Uuid
+  overallRating       Int
+  technicalRating     Int?
+  communicationRating Int?
+  strengths           String?
+  concerns            String?
+  comments            String?
+  recommendation      InterviewRecommendation
+  submittedAt         DateTime                @default(now())
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  interview           Interview               @relation(fields: [interviewId], references: [id], onDelete: Restrict)
+  interviewer         User                    @relation("FeedbackInterviewer", fields: [interviewerId], references: [id], onDelete: Restrict)
+
+  @@unique([interviewId, interviewerId])
+  @@index([interviewerId])
+}
+
+model InterviewHistory {
+  id             String                 @id @default(uuid()) @db.Uuid
+  interviewId    String                 @db.Uuid
+  action         InterviewHistoryAction
+  previousStart  DateTime?
+  newStart       DateTime?
+  previousEnd    DateTime?
+  newEnd         DateTime?
+  previousStatus InterviewStatus?
+  newStatus      InterviewStatus?
+  changedById    String                 @db.Uuid
+  reason         String?
+  createdAt      DateTime               @default(now())
+  interview      Interview              @relation(fields: [interviewId], references: [id], onDelete: Restrict)
+  changedBy      User                   @relation("InterviewHistoryChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([interviewId, createdAt])
+}
+
+model EmailTemplate {
+  id              String            @id @default(uuid()) @db.Uuid
+  name            String
+  type            CommunicationType
+  subjectTemplate String
+  bodyTemplate    String
+  isActive        Boolean           @default(true)
+  createdById     String            @db.Uuid
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdBy       User              @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  communications  Communication[]
+
+  @@unique([type, name])
+  @@index([createdById])
+}
+
+model Communication {
+  id                String              @id @default(uuid()) @db.Uuid
+  applicationId     String              @db.Uuid
+  candidateId       String              @db.Uuid
+  templateId        String?             @db.Uuid
+  type              CommunicationType
+  status            CommunicationStatus @default(DRAFT)
+  recipientEmail    String
+  subject           String
+  renderedBody      String
+  providerMessageId String?
+  failureReason     String?
+  retryCount        Int                 @default(0)
+  sentById          String?             @db.Uuid
+  queuedAt          DateTime?
+  sentAt            DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  candidate         Candidate           @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  template          EmailTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  sentBy            User?               @relation("CommunicationSentBy", fields: [sentById], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([candidateId])
+  @@index([status, sentAt])
+  @@index([sentById])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @db.Uuid
+  action      String
+  entityType  String
+  entityId    String
+  description String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([entityType, entityId, createdAt])
+  @@index([createdAt])
+}

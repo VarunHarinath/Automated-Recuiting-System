@@ -2,10 +2,19 @@
 
 Modular monorepo for the internal recruitment lifecycle described by the SRS in `docs/`.
 
+## Implementation languages
+
+- JavaScript/JSX: React frontend, Express HTTP foundation, API middleware/routes, and the original shared configuration/type-contract package entry points.
+- TypeScript: Prisma client access, database health/shutdown/rule helpers, shared database-backed Zod schemas, Prisma seed data and seed runner, and database integration tests.
+- Prisma Schema Language and SQL: normalized schema and versioned PostgreSQL migration.
+- Python: FastAPI resume-processing service and pytest tests.
+
+This split is intentional. DEV-001 established JavaScript for the Phase 1 application foundation; DEV-002 later authorized TypeScript specifically for the database foundation. See `docs/assumptions.md`.
+
 ## Prerequisites
 
-- Node.js 22+ (JavaScript source; no TypeScript compilation)
-- pnpm 10+
+- Node.js 22+ (JavaScript and TypeScript tooling)
+- pnpm 11+
 - Python 3.12+
 - Docker with Docker Compose
 
@@ -28,8 +37,26 @@ Local endpoints:
 ```bash
 pnpm lint
 pnpm check
+pnpm typecheck
 pnpm test
 pnpm build
 docker compose config
 ```
 
+<<<<<<< HEAD
+=======
+Database commands:
+
+```bash
+pnpm db:format
+pnpm db:validate
+pnpm db:generate
+pnpm db:migrate -- --name <migration-name>
+pnpm db:seed
+TEST_DATABASE_URL=... pnpm db:test
+```
+
+Database design and constraints are documented in `docs/database-design.md`. Never run database tests against the normal development `DATABASE_URL`.
+
+The repository currently contains the Phase 1 application foundation and the completed database foundation. Authentication APIs, frontend authentication, and later business modules are not yet implemented.
+>>>>>>> 2cfd114 (Updated RBAC & Role based Auth)
