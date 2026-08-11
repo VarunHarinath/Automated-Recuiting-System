@@ -27,3 +27,8 @@ None adopted in Phase 0. Any future assumption needed to unblock implementation 
 - DB-A03: Interview ratings use 1–5. Technical and communication ratings are optional.
 - DB-A04: IANA timezone names accompany UTC timestamps; conflict buffers remain an open service-layer decision.
 - DB-A05: Historical recruitment records use restrictive deletion. Candidate and application-note soft deletion is available where the SRS justifies business recovery/privacy workflows.
+
+## User Management implementation assumptions
+
+- USR-A01 (2026-08-10): The SRS does not define a password policy. Administrator-created passwords therefore require 8–128 characters as a temporary validation baseline. This expires when an approved organization password or invitation/reset policy is provided (OQ-005/OQ-007).
+- USR-A02 (2026-08-10): An authenticated administrator cannot deactivate their own account or remove their own `ADMINISTRATOR` role. This prevents an accidental self-lockout while still allowing one administrator to manage other administrators. Review when a formal last-administrator policy is approved.

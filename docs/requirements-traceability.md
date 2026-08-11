@@ -4,16 +4,16 @@ Status values: `Not Started`, `In Progress`, `Implemented`, `Verified`, `Deferre
 
 | Requirement ID | Description | Priority | Status | Backend files | Frontend files | Database models | Tests | Notes |
 |---|---|---|---|---|---|---|---|---|
-| USR-01 | Administrator user class | Must | Not Started | — | — | — | — | Internal user |
-| USR-02 | Recruiter user class | Must | Not Started | — | — | — | — | Internal user |
-| USR-03 | Interviewer user class | Must | Not Started | — | — | — | — | Internal user |
+| USR-01 | Administrator user class | Must | Verified | `modules/users/*`, auth/RBAC middleware | — | User | USER-01, USER-04–27 | Administrator-only user management |
+| USR-02 | Recruiter user class | Must | Verified | `modules/users/*`, auth/RBAC middleware | — | User | USER-02, USER-07, USER-13, USER-19, USER-22 | Managed internal role; no user-admin access |
+| USR-03 | Interviewer user class | Must | Verified | `modules/users/*`, auth/RBAC middleware | — | User | USER-03, USER-07, USER-13 | Managed internal role; no user-admin access |
 | USR-04 | Candidate actor/data subject | Could | Deferred | — | — | — | — | No candidate login in initial release |
 | FR-AUTH-01 | User login | Must | Verified | `modules/auth/*`, `app.js` | — | User, AuditLog | AUTH-01, AUTH-18 | `POST /api/v1/auth/login` |
 | FR-AUTH-02 | Generic invalid-login handling | Must | Verified | `auth.service.js`, `auth.controller.js` | — | User, AuditLog | AUTH-02–07 | Unknown, wrong-password, and inactive responses are identical |
 | FR-AUTH-03 | Role-based access | Must | Verified | `middleware/authenticate.js`, `middleware/authorize.js` | — | User.role, User.isActive | AUTH-08–16 | Current DB role/active state is authoritative |
 | FR-AUTH-04 | User logout | Must | Verified | `auth.routes.js`, `auth.controller.js`, `auth.service.js` | — | AuditLog | AUTH-19 | Stateless; client discards token |
 | FR-AUTH-05 | Session expiry | Should | Verified | `auth.jwt.js`, `config/environment.js` | — | — | AUTH-12 | Configurable JWT expiration; no refresh token |
-| FR-AUTH-06 | Internal user management | Should | Not Started | — | — | — | — | Phase 2; OQ-007 |
+| FR-AUTH-06 | Internal user management | Should | Verified | `modules/users/*`, `app.js` | — | User, AuditLog | USER-01–27 | Administrator create/list/view/update/role/status; no deletion |
 | FR-JOB-01 | Create job | Must | Not Started | — | — | — | — | Phase 3 |
 | FR-JOB-02 | Edit job | Must | Not Started | — | — | — | — | Phase 3 |
 | FR-JOB-03 | View job list/details | Must | Not Started | — | — | — | — | Phase 3 |
@@ -108,7 +108,7 @@ Status values: `Not Started`, `In Progress`, `Implemented`, `Verified`, `Deferre
 | IF-03 | Controlled file storage | Must | Not Started | — | — | — | — | Phase 4 |
 | IF-04 | Optional calendar service | Could | Deferred | — | — | — | — | Out of initial scope |
 | IF-05 | Optional approved LinkedIn API | Could | Deferred | — | — | — | — | No scraping |
-| DATA-01 | User data | Must | Not Started | — | — | — | — | Phase 2 |
+| DATA-01 | User data | Must | Verified | `modules/users/user.service.js` | — | User | USER-05, USER-07–13, USER-15–17 | Safe fields only; passwordHash never returned |
 | DATA-02 | Job data | Must | Not Started | — | — | — | — | Phase 3 |
 | DATA-03 | Candidate data | Must | Not Started | — | — | — | — | Phase 4 |
 | DATA-04 | Application data | Must | Not Started | — | — | — | — | Phase 4 |
@@ -128,6 +128,17 @@ Status values: `Not Started`, `In Progress`, `Implemented`, `Verified`, `Deferre
 | US-06 Submit feedback | FR-INT-07–08, BR-10 | Not Started | — |
 | US-07 Send offer/rejection | FR-COM-03–07, NFR-REL-03 | Not Started | — |
 | US-08 View recruitment metrics | FR-REP-01–07 | Not Started | — |
+
+## User Management backend traceability (2026-08-10)
+
+| Requirement | Routes | Implementation | Validation | Tests | Status |
+|---|---|---|---|---|---|
+| FR-AUTH-06 / USR-01–03 | `GET/POST /api/v1/users`, `GET/PATCH /api/v1/users/:id`, `PATCH /api/v1/users/:id/status` | `user.routes.js`, `user.controller.js`, `user.service.js` | `user.validation.js` | USER-01–27 | Verified |
+| NFR-SEC-01 | `POST /api/v1/users` | Argon2id hash; safe Prisma select | 8–128 character temporary baseline (USR-A01) | USER-10–11, USER-24 | Verified |
+| NFR-SEC-02 / NFR-SEC-07 | All `/api/v1/users` routes | Existing `authenticate` + `requireRole(ADMINISTRATOR)` | Current DB role/active state | USER-01–04, USER-22, USER-25–26 | Verified |
+| NFR-SEC-06 | All user inputs | Controller parsing and service normalization | Strict body/query/UUID schemas; 100-row maximum | USER-06, USER-08–09, USER-14, USER-18–21, USER-27 | Verified |
+| NFR-REL-02 | All user routes | Existing centralized `ApiError`/error handler | Stable validation/not-found/conflict errors | USER-04, USER-06, USER-08, USER-14, USER-27 | Verified |
+| DATA-01 / FR-AUD-04 foundation | User CRUD-without-delete and AuditLog | Transactional user/audit writes | No secrets in audit metadata | USER-05, USER-07, USER-12–17, USER-23–24 | Verified |
 
 ## Database foundation traceability (2026-08-06)
 

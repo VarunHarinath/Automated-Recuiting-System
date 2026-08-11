@@ -1,5 +1,38 @@
 # Implementation Progress
 
+## 2026-08-10
+
+### Completed
+
+- Implemented administrator-only User Management backend routes for paginated listing, detail retrieval, internal-user creation, profile/role updates, and activation/deactivation.
+- Reused existing JWT authentication, database-backed current-role verification, centralized RBAC, Prisma client, Argon2id hashing, response envelopes, and error handling.
+- Added strict UUID/body/query validation, case-normalized unique email handling, safe user projections, 100-row pagination maximum, and transactional security audit events.
+- Added self-deactivation and self-demotion protections, documented as USR-A02, and temporary 8–128 character administrator-created password validation documented as USR-A01.
+- Added OpenAPI coverage and 27 User Management integration tests. The complete API suite passes 59 tests: 12 database, 19 authentication/RBAC, 27 User Management, and 1 health test.
+
+### In Progress
+
+- None. Work is stopped at the User Management approval gate.
+
+### Decisions
+
+- User records are never deleted; status changes use `isActive` so historical recruitment relationships remain valid.
+- Every user-administration route requires the current database role `ADMINISTRATOR`; client-supplied/JWT-stale roles are not trusted.
+- User mutations and their audit records commit in one Prisma transaction. Audit metadata contains only safe change summaries.
+
+### Open Questions
+
+- Final organization password, invitation/reset, and minimum-active-administrator policies remain open. See OQ-005, OQ-007, USR-A01, and USR-A02.
+
+### Risks
+
+- Administrator-set initial passwords require an out-of-band secure delivery process until an invitation/reset workflow is approved.
+- The current self-protection rule prevents accidental self-lockout but does not enforce a configurable minimum number of active administrators.
+
+### Next Steps
+
+- Job Management only after User Management approval.
+
 ## 2026-08-07
 
 ### Completed

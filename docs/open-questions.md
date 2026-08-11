@@ -38,3 +38,9 @@ No temporary implementation assumptions are active in Phase 0. Questions are pri
 
 - OQ-005 is partially resolved for the approved access-token scope: `JWT_EXPIRES_IN` defaults to 15 minutes, expiration is enforced by JWT verification, and logout is stateless/client-side token disposal. Refresh tokens, server-side revocation, inactivity timeout, password policy, and lockout remain unapproved and unimplemented.
 - OQ-006 remains open for future record-level authorization. This module establishes centralized role checks for `ADMINISTRATOR`, `RECRUITER`, and `INTERVIEWER`, but does not invent ownership rules for modules that are not yet implemented.
+
+## User Management module disposition
+
+- OQ-005 remains open for the final organization password policy. USR-A01 temporarily validates administrator-created passwords at 8–128 characters without changing authentication behavior.
+- OQ-007 is partially resolved for this backend module by the approved `POST /api/v1/users` contract: administrators set an initial password, which is immediately Argon2id-hashed. Invitation and password-reset flows remain out of scope.
+- USR-A02 prevents self-deactivation and self-demotion. Whether the system must additionally preserve a minimum number of active administrators remains an open policy decision.

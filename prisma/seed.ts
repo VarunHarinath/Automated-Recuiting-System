@@ -8,10 +8,10 @@ const day = 86_400_000;
 
 async function seedUsers(): Promise<void> {
   const users: Array<[string, string, string, string, UserRole, string]> = [
-    [ids.admin, 'System', 'Administrator', 'admin@example.local', 'ADMINISTRATOR', process.env.SEED_ADMIN_PASSWORD ?? 'LocalAdmin!ChangeMe123'],
-    [ids.recruiter, 'Riley', 'Recruiter', 'recruiter@example.local', 'RECRUITER', process.env.SEED_RECRUITER_PASSWORD ?? 'LocalRecruiter!ChangeMe123'],
-    [ids.interviewer1, 'Jordan', 'Lee', 'interviewer1@example.local', 'INTERVIEWER', process.env.SEED_INTERVIEWER_PASSWORD ?? 'LocalInterviewer!ChangeMe123'],
-    [ids.interviewer2, 'Morgan', 'Patel', 'interviewer2@example.local', 'INTERVIEWER', process.env.SEED_INTERVIEWER_PASSWORD ?? 'LocalInterviewer!ChangeMe123'],
+    [ids.admin, 'System', 'Administrator', 'admin@example.local', 'ADMINISTRATOR', process.env.SEED_ADMIN_PASSWORD ?? 'abcd1234'],
+    [ids.recruiter, 'Riley', 'Recruiter', 'varun@envsync.me', 'RECRUITER', process.env.SEED_RECRUITER_PASSWORD ?? 'abcd1234'],
+    [ids.interviewer1, 'Jordan', 'Lee', 'interviewer1@example.local', 'INTERVIEWER', process.env.SEED_INTERVIEWER_PASSWORD ?? 'abcd1234'],
+    [ids.interviewer2, 'Morgan', 'Patel', 'interviewer2@example.local', 'INTERVIEWER', process.env.SEED_INTERVIEWER_PASSWORD ?? 'abcd1234'],
   ];
   for (const [id, firstName, lastName, email, role, password] of users) {
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
