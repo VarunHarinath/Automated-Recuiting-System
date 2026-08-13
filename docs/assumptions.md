@@ -32,3 +32,20 @@ None adopted in Phase 0. Any future assumption needed to unblock implementation 
 
 - USR-A01 (2026-08-10): The SRS does not define a password policy. Administrator-created passwords therefore require 8–128 characters as a temporary validation baseline. This expires when an approved organization password or invitation/reset policy is provided (OQ-005/OQ-007).
 - USR-A02 (2026-08-10): An authenticated administrator cannot deactivate their own account or remove their own `ADMINISTRATOR` role. This prevents an accidental self-lockout while still allowing one administrator to manage other administrators. Review when a formal last-administrator policy is approved.
+
+## Job, Candidate, and Application implementation assumptions
+
+- JOB-A01 (2026-08-12): `closingDate` remains optional as permitted by the approved schema. When supplied, database constraints prevent it from preceding job creation; the API does not invent a separate timezone or same-day cutoff policy.
+- CAN-A01 (2026-08-12): Duplicate normalized candidate email is allowed and returned as `meta.warnings[DUPLICATE_CANDIDATE_EMAIL]`, matching FR-CAN-08 and the approved non-unique database design.
+- APP-A01 (2026-08-12): New applications are accepted only when `Job.status = OPEN`; both `CLOSED` and `ON_HOLD` return `JOB_NOT_OPEN`. This is the conservative interpretation of a job not currently accepting applications.
+- APP-A02 (2026-08-12): Because the SRS lists a typical workflow but does not define a mandatory transition graph, authorized administrators/recruiters may move to any approved `ApplicationStatus`. Every actual change is transactional and append-only in status history.
+- APP-A03 (2026-08-12): An assigned recruiter may be an active `RECRUITER` or `ADMINISTRATOR`; an `INTERVIEWER` cannot own an application.
+
+## Resume processing and screening assumptions
+
+- SCR-A01 (2026-08-12): Ollama enriches structured resume facts only. If it is unavailable, times out, or returns schema-invalid JSON, processing fails with a controlled status; deterministic extraction is not silently represented as a fully completed hybrid result.
+- SCR-A02 (2026-08-12): Exact case-insensitive normalized skill matching is used. Semantic similarity and inferred equivalence are deliberately excluded.
+- SCR-A03 (2026-08-12): Because `Job` has no education requirement, education is recorded as not applicable and excluded from the applicable-weight denominator. This prevents missing schema capability from penalizing candidates.
+- SCR-A04 (2026-08-12): Criteria with no configured job requirement are excluded from the applicable-weight denominator. Total score is normalized to 0–100 across applicable criteria.
+- SCR-A05 (2026-08-12): Advisory labels are `HIGH_MATCH` (80+), `MODERATE_MATCH` (60–79.99), and `LOW_MATCH` (below 60). They never change application status or make a hiring decision.
+- SCR-A06 (2026-08-12): The existing `ScreeningResult.updatedAt` and append-only `SCREENING_OVERRIDE` audit record timestamp together record override timing; no schema migration is introduced solely for `overriddenAt`.

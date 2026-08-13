@@ -203,6 +203,326 @@ paths:
         '401': { $ref: '#/components/responses/AuthenticationError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/UserNotFoundError' }
+  /jobs:
+    get:
+      summary: List jobs
+      description: Available to authenticated internal users.
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/JobStatus' } }
+        - { name: department, in: query, schema: { type: string } }
+        - { name: location, in: query, schema: { type: string } }
+        - { name: employmentType, in: query, schema: { $ref: '#/components/schemas/EmploymentType' } }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Paginated jobs, content: { application/json: { schema: { $ref: '#/components/schemas/ListSuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+    post:
+      summary: Create a job
+      description: Requires ADMINISTRATOR or RECRUITER.
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/JobWriteRequest' } } } }
+      responses:
+        '201': { description: Job created, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+  /jobs/{id}:
+    parameters: [{ $ref: '#/components/parameters/EntityId' }]
+    get:
+      summary: Get a job
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Job detail, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    patch:
+      summary: Update a job
+      description: Requires ADMINISTRATOR or RECRUITER; protected fields are rejected.
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/JobWriteRequest' } } } }
+      responses:
+        '200': { description: Job updated, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /jobs/{id}/status:
+    parameters: [{ $ref: '#/components/parameters/EntityId' }]
+    patch:
+      summary: Change or reopen a job status
+      description: Requires ADMINISTRATOR or RECRUITER.
+      tags: [Jobs]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: false, required: [status], properties: { status: { $ref: '#/components/schemas/JobStatus' } } } } } }
+      responses:
+        '200': { description: Status changed, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /candidates:
+    get:
+      summary: List candidates
+      description: Requires ADMINISTRATOR or RECRUITER.
+      tags: [Candidates]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: skill, in: query, schema: { type: string } }
+        - { name: location, in: query, schema: { type: string } }
+        - { name: minimumExperienceYears, in: query, schema: { type: number, minimum: 0 } }
+        - { name: maximumExperienceYears, in: query, schema: { type: number, minimum: 0 } }
+      responses:
+        '200': { description: Paginated candidates, content: { application/json: { schema: { $ref: '#/components/schemas/ListSuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+    post:
+      summary: Create a candidate manually
+      description: Requires ADMINISTRATOR or RECRUITER. Duplicate normalized emails return a warning instead of rejection.
+      tags: [Candidates]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CandidateWriteRequest' } } } }
+      responses:
+        '201': { description: Candidate created, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+  /candidates/{id}:
+    parameters: [{ $ref: '#/components/parameters/EntityId' }]
+    get:
+      summary: Get a structured candidate profile
+      tags: [Candidates]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Candidate detail, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    patch:
+      summary: Update a candidate and optional structured profile children
+      tags: [Candidates]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CandidateWriteRequest' } } } }
+      responses:
+        '200': { description: Candidate updated, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /applications:
+    get:
+      summary: List applications
+      description: Requires ADMINISTRATOR or RECRUITER.
+      tags: [Applications]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ApplicationStatus' } }
+        - { name: jobId, in: query, schema: { type: string, format: uuid } }
+        - { name: candidateId, in: query, schema: { type: string, format: uuid } }
+        - { name: assignedRecruiterId, in: query, schema: { type: string, format: uuid } }
+        - { name: dateFrom, in: query, schema: { type: string, format: date-time } }
+        - { name: dateTo, in: query, schema: { type: string, format: date-time } }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Paginated applications, content: { application/json: { schema: { $ref: '#/components/schemas/ListSuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+    post:
+      summary: Create an application with initial APPLIED history
+      description: Requires ADMINISTRATOR or RECRUITER; only OPEN jobs accept new applications.
+      tags: [Applications]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApplicationCreateRequest' } } } }
+      responses:
+        '201': { description: Application created, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+  /applications/{id}:
+    parameters: [{ $ref: '#/components/parameters/EntityId' }]
+    get:
+      summary: Get application detail, history, and internal notes
+      tags: [Applications]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Application detail, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    patch:
+      summary: Update source or recruiter assignment
+      description: Status is rejected here and must use the status route.
+      tags: [Applications]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApplicationUpdateRequest' } } } }
+      responses:
+        '200': { description: Application updated, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /applications/{id}/status:
+    parameters: [{ $ref: '#/components/parameters/EntityId' }]
+    patch:
+      summary: Change application status and append history
+      tags: [Applications]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApplicationStatusRequest' } } } }
+      responses:
+        '200': { description: Status updated, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /applications/{id}/notes:
+    parameters: [{ $ref: '#/components/parameters/EntityId' }]
+    post:
+      summary: Add an internal application note
+      tags: [Applications]
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: false, required: [content], properties: { content: { type: string, minLength: 1, maxLength: 5000 } } } } } }
+      responses:
+        '201': { description: Internal note created, content: { application/json: { schema: { $ref: '#/components/schemas/EntitySuccess' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /resumes/{id}/process:
+    post:
+      tags: [Resume Processing]
+      summary: Process a stored PDF or DOCX resume
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '202': { description: Processing completed and the status/result metadata was persisted }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Resume not found }
+        '409': { description: Resume is already processing }
+        '502': { description: Processing service/file/model failure }
+  /resumes/{id}/reprocess:
+    post:
+      tags: [Resume Processing]
+      summary: Re-run extraction while preserving candidate-entered data
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '202': { description: Reprocessing completed }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Resume not found }
+        '502': { description: Processing service failure }
+  /resumes/{id}/processing-status:
+    get:
+      tags: [Resume Processing]
+      summary: Return safe processing status and metadata
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '200': { description: Resume processing status }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Resume not found }
+  /applications/{id}/screen:
+    post:
+      tags: [Screening]
+      summary: Run deterministic explainable screening
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '201': { description: Persisted screening result }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Application not found }
+        '409': { description: Processed resume/default configuration required }
+  /applications/{id}/rescreen:
+    post:
+      tags: [Screening]
+      summary: Append a new screening result without deleting history
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '201': { description: New persisted screening result }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Application not found }
+        '409': { description: Screening prerequisite missing }
+  /applications/{id}/screenings:
+    get:
+      tags: [Screening]
+      summary: List screening history newest first
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '200': { description: Screening history }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Application not found }
+  /screenings/{id}:
+    get:
+      tags: [Screening]
+      summary: Get one explainable screening result
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '200': { description: Screening result and criteria }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Screening result not found }
+  /screenings/{id}/override:
+    patch:
+      tags: [Screening]
+      summary: Override the advisory recommendation without changing the calculated score
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recommendation, reason]
+              additionalProperties: false
+              properties:
+                recommendation: { type: string, maxLength: 100 }
+                reason: { type: string, maxLength: 2000 }
+      responses:
+        '200': { description: Overridden advisory recommendation }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Screening result not found }
+  /jobs/{id}/rankings:
+    get:
+      tags: [Screening]
+      summary: Rank job applicants by their latest screening result
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/EntityId' }]
+      responses:
+        '200': { description: Latest-result ranking in descending score order }
+        '401': { $ref: '#/components/responses/AuthenticationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { description: Job not found }
 components:
   securitySchemes:
     bearerAuth:
@@ -237,8 +557,19 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFoundError:
+      description: The requested entity was not found.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ConflictError:
+      description: The request conflicts with current data or business state.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
   parameters:
     UserId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    EntityId:
       name: id
       in: path
       required: true
@@ -247,6 +578,91 @@ components:
     UserRole:
       type: string
       enum: [ADMINISTRATOR, RECRUITER, INTERVIEWER]
+    JobStatus: { type: string, enum: [OPEN, ON_HOLD, CLOSED] }
+    EmploymentType: { type: string, enum: [FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, TEMPORARY] }
+    ApplicationStatus: { type: string, enum: [APPLIED, SCREENING, SHORTLISTED, INTERVIEW_SCHEDULED, INTERVIEW_COMPLETED, OFFER_SENT, HIRED, REJECTED, WITHDRAWN] }
+    JobSkillInput:
+      type: object
+      additionalProperties: false
+      required: [name, requirementType]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        requirementType: { type: string, enum: [REQUIRED, PREFERRED] }
+        minimumYears: { type: number, minimum: 0, nullable: true }
+        weight: { type: number, minimum: 0, nullable: true }
+    JobWriteRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title: { type: string }
+        department: { type: string }
+        description: { type: string }
+        location: { type: string }
+        employmentType: { $ref: '#/components/schemas/EmploymentType' }
+        minimumExperienceYears: { type: number, minimum: 0 }
+        maximumExperienceYears: { type: number, minimum: 0, nullable: true }
+        salaryMinimum: { type: number, minimum: 0, nullable: true }
+        salaryMaximum: { type: number, minimum: 0, nullable: true }
+        currency: { type: string, minLength: 3, maxLength: 3, nullable: true }
+        closingDate: { type: string, format: date, nullable: true }
+        status: { $ref: '#/components/schemas/JobStatus' }
+        skills: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/JobSkillInput' } }
+    CandidateWriteRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        professionalSummary: { type: string, nullable: true }
+        totalExperienceYears: { type: number, minimum: 0, nullable: true }
+        currentJobTitle: { type: string, nullable: true }
+        currentCompany: { type: string, nullable: true }
+        linkedinUrl: { type: string, format: uri, nullable: true }
+        portfolioUrl: { type: string, format: uri, nullable: true }
+        skills: { type: array, maxItems: 100, items: { type: object } }
+        education: { type: array, maxItems: 100, items: { type: object } }
+        experience: { type: array, maxItems: 100, items: { type: object } }
+    ApplicationCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [candidateId, jobId]
+      properties:
+        candidateId: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        assignedRecruiterId: { type: string, format: uuid, nullable: true }
+        source: { type: string, nullable: true }
+        notes: { type: string, maxLength: 5000 }
+    ApplicationUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        assignedRecruiterId: { type: string, format: uuid, nullable: true }
+        source: { type: string, nullable: true }
+    ApplicationStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/ApplicationStatus' }
+        reason: { type: string, maxLength: 2000 }
+    EntitySuccess:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { type: object }
+        meta: { type: object }
+    ListSuccess:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: { type: array, items: { type: object } }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
     LoginRequest:
       type: object
       additionalProperties: false
@@ -345,7 +761,7 @@ components:
           properties:
             code:
               type: string
-              enum: [VALIDATION_ERROR, INVALID_CREDENTIALS, UNAUTHORIZED, FORBIDDEN, TOKEN_EXPIRED, INVALID_TOKEN, USER_NOT_FOUND, EMAIL_ALREADY_EXISTS]
+              enum: [VALIDATION_ERROR, INVALID_CREDENTIALS, UNAUTHORIZED, FORBIDDEN, TOKEN_EXPIRED, INVALID_TOKEN, USER_NOT_FOUND, EMAIL_ALREADY_EXISTS, JOB_NOT_FOUND, CANDIDATE_NOT_FOUND, APPLICATION_NOT_FOUND, RECRUITER_NOT_FOUND, APPLICATION_ALREADY_EXISTS, JOB_NOT_OPEN, INVALID_RECRUITER_ASSIGNMENT]
             message: { type: string }
             details:
               type: array

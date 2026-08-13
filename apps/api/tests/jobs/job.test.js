@@ -1,0 +1,43 @@
+import { randomUUID } from 'node:crypto';
+import argon2 from 'argon2';
+import { UserRole } from '@prisma/client';
+import request from 'supertest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { app } from '../../src/app.js';
+import { prisma } from '../../src/database/runtime-client.js';
+import { signAccessToken } from '../../src/modules/auth/auth.jwt.js';
+
+const run = randomUUID(); let users; let tokens; let job;
+const base = { title: `Engineer ${run}`, department: 'Engineering', description: 'Build reliable recruitment software.', location: 'Chicago', employmentType: 'FULL_TIME', minimumExperienceYears: 2, maximumExperienceYears: 5, salaryMinimum: 80000, salaryMaximum: 120000, currency: 'usd', status: 'OPEN', skills: [{ name: ' React ', requirementType: 'REQUIRED', minimumYears: 2 }, { name: 'PostgreSQL', requirementType: 'PREFERRED' }] };
+beforeAll(async () => { const passwordHash = await argon2.hash('JobTest!123'); users = {}; tokens = {}; for (const role of Object.values(UserRole)) { const user = await prisma.user.create({ data: { firstName: 'Job', lastName: role, email: `job-${role}-${run}@test.local`, passwordHash, role } }); users[role] = user; tokens[role] = signAccessToken(user); } });
+afterAll(() => prisma.$disconnect());
+const auth = (role) => ({ Authorization: `Bearer ${tokens[role]}` });
+const create = (role = UserRole.RECRUITER, data = base) => request(app).post('/api/v1/jobs').set(auth(role)).send(data);
+
+describe.sequential('Job Management API', () => {
+  it('JOB-01 recruiter creates job', async () => { const r = await create(); expect(r.status).toBe(201); job = r.body.data; });
+  it('JOB-02 administrator creates job', async () => expect((await create(UserRole.ADMINISTRATOR, { ...base, title: `Admin ${run}` })).status).toBe(201));
+  it('JOB-03 interviewer cannot create job', async () => expect((await create(UserRole.INTERVIEWER)).status).toBe(403));
+  it('JOB-04 unauthenticated create rejected', async () => expect((await request(app).post('/api/v1/jobs').send(base)).status).toBe(401));
+  it('JOB-05 required validation', async () => expect((await create(UserRole.RECRUITER, {})).body.error.code).toBe('VALIDATION_ERROR'));
+  it('JOB-06 invalid employment type', async () => expect((await create(UserRole.RECRUITER, { ...base, employmentType: 'PERMANENT' })).status).toBe(400));
+  it('JOB-07 negative experience rejected', async () => expect((await create(UserRole.RECRUITER, { ...base, minimumExperienceYears: -1 })).status).toBe(400));
+  it('JOB-08 invalid experience range rejected', async () => expect((await create(UserRole.RECRUITER, { ...base, minimumExperienceYears: 5, maximumExperienceYears: 2 })).status).toBe(400));
+  it('JOB-09 invalid salary range rejected', async () => expect((await create(UserRole.RECRUITER, { ...base, salaryMinimum: 10, salaryMaximum: 5 })).status).toBe(400));
+  it('JOB-10 job code unique', async () => { const values = (await prisma.job.findMany({ where: { title: { contains: run } } })).map((x) => x.jobCode); expect(new Set(values).size).toBe(values.length); });
+  it('JOB-11 required skills persisted', async () => expect(job.skills.some((x) => x.requirementType === 'REQUIRED')).toBe(true));
+  it('JOB-12 preferred skills persisted', async () => expect(job.skills.some((x) => x.requirementType === 'PREFERRED')).toBe(true));
+  it('JOB-13 duplicate skill normalization rejected', async () => { const r = await create(UserRole.RECRUITER, { ...base, skills: [{ name: 'React', requirementType: 'REQUIRED' }, { name: ' react ', requirementType: 'PREFERRED' }] }); expect(r.status).toBe(400); });
+  it('JOB-14 list pagination', async () => { const r = await request(app).get('/api/v1/jobs?page=1&limit=1').set(auth(UserRole.INTERVIEWER)); expect(r.body.data).toHaveLength(1); expect(r.body.meta.limit).toBe(1); });
+  it('JOB-15 status filter', async () => { const r = await request(app).get('/api/v1/jobs?status=OPEN').set(auth(UserRole.RECRUITER)); expect(r.body.data.every((x) => x.status === 'OPEN')).toBe(true); });
+  it('JOB-16 department filter', async () => expect((await request(app).get('/api/v1/jobs?department=Engineering').set(auth(UserRole.RECRUITER))).body.data.length).toBeGreaterThan(0));
+  it('JOB-17 location filter', async () => expect((await request(app).get('/api/v1/jobs?location=Chicago').set(auth(UserRole.RECRUITER))).body.data.length).toBeGreaterThan(0));
+  it('JOB-18 search', async () => expect((await request(app).get(`/api/v1/jobs?search=${run}`).set(auth(UserRole.RECRUITER))).body.data.length).toBeGreaterThan(0));
+  it('JOB-19 retrieve job', async () => expect((await request(app).get(`/api/v1/jobs/${job.id}`).set(auth(UserRole.INTERVIEWER))).status).toBe(200));
+  it('JOB-20 missing job returns 404', async () => expect((await request(app).get(`/api/v1/jobs/${randomUUID()}`).set(auth(UserRole.RECRUITER))).body.error.code).toBe('JOB_NOT_FOUND'));
+  it('JOB-21 recruiter updates job', async () => { const r = await request(app).patch(`/api/v1/jobs/${job.id}`).set(auth(UserRole.RECRUITER)).send({ location: 'Remote' }); expect(r.body.data.location).toBe('Remote'); });
+  it('JOB-22 protected fields cannot be mass assigned', async () => expect((await request(app).patch(`/api/v1/jobs/${job.id}`).set(auth(UserRole.RECRUITER)).send({ jobCode: 'BAD' })).status).toBe(400));
+  it('JOB-23 status can change to CLOSED', async () => { const r = await request(app).patch(`/api/v1/jobs/${job.id}/status`).set(auth(UserRole.RECRUITER)).send({ status: 'CLOSED' }); expect(r.body.data.status).toBe('CLOSED'); });
+  it('JOB-24 closed job can reopen', async () => { const r = await request(app).patch(`/api/v1/jobs/${job.id}/status`).set(auth(UserRole.RECRUITER)).send({ status: 'OPEN' }); expect(r.body.data.status).toBe('OPEN'); expect(r.body.data.closedAt).toBeNull(); });
+  it('JOB-25 audit events created', async () => { const actions = (await prisma.auditLog.findMany({ where: { entityType: 'JOB', entityId: job.id } })).map((x) => x.action); expect(actions).toEqual(expect.arrayContaining(['JOB_CREATED', 'JOB_UPDATED', 'JOB_STATUS_CHANGED'])); });
+});

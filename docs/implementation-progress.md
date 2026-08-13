@@ -1,5 +1,37 @@
 # Implementation Progress
 
+## 2026-08-12
+
+### Completed
+
+- Implemented Job Management backend routes for creation, pagination/search/filtering, details, updates, normalized required/preferred skills, status changes, reopening, and audit events.
+- Implemented Candidate Management backend routes for manual structured profiles, pagination/search/filtering, duplicate-email warnings, normalized skills, education/experience replacement transactions, safe resume metadata, and audit events. Resume parsing and screening remain unimplemented.
+- Implemented Application Management backend routes for transactional creation with initial APPLIED history, pagination/filtering, details, recruiter/source updates, transactional status history, internal notes, and audit events.
+- Added 25 Job, 24 Candidate, and 30 Application integration-test cases. Per the 2026-08-12 instruction, these test suites were written but not executed in the final implementation pass.
+- Expanded OpenAPI and requirement traceability for all actually implemented routes.
+
+### In Progress
+
+- None. Work is stopped for manual testing and approval.
+
+### Decisions
+
+- Job reads allow authenticated internal users; job writes require administrator or recruiter.
+- Candidate and Application routes require administrator or recruiter, preserving least privilege for interviewers.
+- Candidate duplicate email warns rather than rejects; only OPEN jobs accept applications; approved application statuses are not constrained by an invented transition graph.
+
+### Open Questions
+
+- Formal closing-date/timezone rules, ON_HOLD intake policy, and application transition matrix remain subject to owner approval. See JOB-A01 and APP-A01–A02.
+
+### Risks
+
+- Automated suites were intentionally not run in the final pass at user request; manual execution is required before merge or deployment.
+
+### Next Steps
+
+- Run the documented manual validation commands. Begin Resume Processing only after these modules are approved.
+
 ## 2026-08-10
 
 ### Completed
@@ -133,3 +165,42 @@
 ### Next Steps
 
 - On instruction, begin Phase 2 only: database design, Prisma schema/migration/seed, authentication, RBAC, and tests.
+# Resume Processing and Screening — 2026-08-12
+
+### Completed
+
+- Hybrid PDF/DOCX resume processing with deterministic extraction and strict-schema local Ollama enrichment.
+- Node API orchestration, controlled storage lookup, processing status/error persistence, reprocessing, and audit events.
+- Explainable deterministic screening using persisted weights, append-only result/criterion history, manual recommendation override, and latest-result job rankings.
+- OpenAPI, assumptions, open questions, traceability, and test suites for resume parsing/orchestration and screening.
+
+### In Progress
+
+- None. The module is complete and stopped before Interview Management.
+
+### Decisions
+
+- No Prisma schema or migration change was required. Education is not scored because Job has no education-requirement field; applicable weights are normalized.
+- Ollama cannot score, rank, change workflow status, or make hiring decisions.
+
+### Open Questions
+
+- Production upload/malware/retention policy and final recommendation thresholds remain subject to approval.
+
+### Risks
+
+- Local model availability and response latency affect parsing completion; failures are persisted and retryable.
+
+### Next Steps
+
+- Await approval before Interview Management.
+
+### Validation Results
+
+- Python resume-processing service: 26 passed.
+- Focused Node resume/screening integration: 40 passed.
+- Complete backend regression: 178 passed across 9 test files.
+- ESLint: passed.
+- TypeScript typecheck: passed.
+- Prisma validate: passed (with the existing Prisma 7 configuration deprecation warning).
+- OpenAPI YAML parse: passed.

@@ -8,6 +8,8 @@ export const apiEnvironmentSchema = z
     API_HOST: z.string().default('127.0.0.1'),
     WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
     RESUME_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+    RESUME_SERVICE_TIMEOUT_MS: z.coerce.number().int().positive().default(45000),
+    LOCAL_STORAGE_PATH: z.string().min(1).default('./storage'),
     JWT_SECRET: z.string().min(32).optional(),
     JWT_EXPIRES_IN: z.string().min(1).default('15m'),
   })

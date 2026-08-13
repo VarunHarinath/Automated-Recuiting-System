@@ -44,3 +44,18 @@ No temporary implementation assumptions are active in Phase 0. Questions are pri
 - OQ-005 remains open for the final organization password policy. USR-A01 temporarily validates administrator-created passwords at 8–128 characters without changing authentication behavior.
 - OQ-007 is partially resolved for this backend module by the approved `POST /api/v1/users` contract: administrators set an initial password, which is immediately Argon2id-hashed. Invitation and password-reset flows remain out of scope.
 - USR-A02 prevents self-deactivation and self-demotion. Whether the system must additionally preserve a minimum number of active administrators remains an open policy decision.
+
+## Job, Candidate, and Application module disposition
+
+- OQ-003 remains open for a formal status-transition matrix. APP-A02 currently allows any approved status while preserving actor, reason, timestamps, and prior history.
+- OQ-008 is resolved for backend creation: schema-required fields are required, database-generated job codes are used, and closing date remains optional under JOB-A01.
+- OQ-009 is resolved for this module by CAN-A01: normalized duplicate candidate email produces a warning and does not reject creation.
+- OQ-010 is resolved by the approved unique candidate/job constraint: duplicate applications return `APPLICATION_ALREADY_EXISTS`; no override is implemented.
+- ON_HOLD application intake follows APP-A01 and is rejected until an explicit business rule says otherwise.
+
+## Resume processing and screening disposition
+
+- OQ-011 remains open for final upload size, malware scanning, retention, and content-signature policy. This module processes only controlled existing Resume storage references and accepts PDF/DOCX in the Python service.
+- OQ-012 is temporarily resolved by SCR-A02 through SCR-A05: persisted weights are used, non-applicable criteria are excluded, exact normalized skills are matched, and advisory thresholds are documented.
+- OQ-013 is implemented using append-only screening rows. A re-screen never updates or deletes an earlier calculated result. Manual override preserves its score and records actor/reason; timing uses `updatedAt` plus the audit record under SCR-A06.
+- Open: approve or replace the temporary `HIGH_MATCH`/`MODERATE_MATCH`/`LOW_MATCH` advisory thresholds before production acceptance.

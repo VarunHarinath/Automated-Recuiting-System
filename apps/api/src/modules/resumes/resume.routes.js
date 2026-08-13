@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { UserRole } from '@prisma/client';
+import { authenticate } from '../../middleware/authenticate.js';
+import { requireRole } from '../../middleware/authorize.js';
+import { getResumeStatusController,processResumeController,reprocessResumeController } from './resume.controller.js';
+export const resumeRouter=Router();
+resumeRouter.use(authenticate,requireRole(UserRole.ADMINISTRATOR,UserRole.RECRUITER));
+resumeRouter.post('/:id/process',processResumeController);
+resumeRouter.post('/:id/reprocess',reprocessResumeController);
+resumeRouter.get('/:id/processing-status',getResumeStatusController);

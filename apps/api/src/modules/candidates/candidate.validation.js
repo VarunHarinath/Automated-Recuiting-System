@@ -1,0 +1,17 @@
+import { CandidateSkillSource } from '@prisma/client';
+import { z } from 'zod';
+import { parseInput } from '../users/user.validation.js';
+
+const text = (max) => z.string().trim().min(1).max(max);
+const nullableText = (max) => z.string().trim().max(max).nullable().optional();
+const date = z.coerce.date().nullable().optional();
+const skill = z.object({ name: text(100), yearsOfExperience: z.coerce.number().min(0).nullable().optional(), proficiency: nullableText(100), source: z.nativeEnum(CandidateSkillSource).default('MANUAL') }).strict();
+const education = z.object({ institution: text(200), degree: nullableText(200), fieldOfStudy: nullableText(200), startDate: date, endDate: date, isCurrentlyStudying: z.boolean().default(false), grade: nullableText(100), description: nullableText(5000) }).strict().superRefine((v,c) => { if (v.startDate && v.endDate && v.endDate < v.startDate) c.addIssue({ code:'custom', path:['endDate'], message:'End date cannot precede start date.' }); if (v.isCurrentlyStudying && v.endDate) c.addIssue({ code:'custom', path:['endDate'], message:'Current education cannot have an end date.' }); });
+const experience = z.object({ company: text(200), jobTitle: text(200), location: nullableText(200), startDate: date, endDate: date, isCurrent: z.boolean().default(false), description: nullableText(5000) }).strict().superRefine((v,c) => { if (v.startDate && v.endDate && v.endDate < v.startDate) c.addIssue({ code:'custom', path:['endDate'], message:'End date cannot precede start date.' }); if (v.isCurrent && v.endDate) c.addIssue({ code:'custom', path:['endDate'], message:'Current experience cannot have an end date.' }); });
+const fields = { firstName:text(100), lastName:text(100), email:z.string().trim().email().max(254), phone:nullableText(50), location:nullableText(200), professionalSummary:nullableText(10000), totalExperienceYears:z.coerce.number().min(0).nullable().optional(), currentJobTitle:nullableText(200), currentCompany:nullableText(200), linkedinUrl:z.string().url().nullable().optional(), portfolioUrl:z.string().url().nullable().optional(), skills:z.array(skill).max(100).optional(), education:z.array(education).max(100).optional(), experience:z.array(experience).max(100).optional() };
+function uniqueSkills(v,c) { if (v.skills) { const names=v.skills.map(x=>x.name.toLowerCase()); if(new Set(names).size!==names.length)c.addIssue({code:'custom',path:['skills'],message:'Duplicate normalized skills are not allowed.'}); } }
+export const candidateCreateSchema=z.object(fields).strict().superRefine(uniqueSkills);
+export const candidateUpdateSchema=z.object(Object.fromEntries(Object.entries(fields).map(([k,s])=>[k,s.optional()]))).strict().refine(v=>Object.keys(v).length>0,{message:'At least one field must be provided.'}).superRefine(uniqueSkills);
+export const candidateIdSchema=z.object({id:z.string().uuid()}).strict();
+export const candidateListSchema=z.object({page:z.coerce.number().int().min(1).default(1),limit:z.coerce.number().int().min(1).max(100).default(20),search:text(100).optional(),skill:text(100).optional(),location:text(200).optional(),minimumExperienceYears:z.coerce.number().min(0).optional(),maximumExperienceYears:z.coerce.number().min(0).optional()}).strict().superRefine((v,c)=>{if(v.minimumExperienceYears!=null&&v.maximumExperienceYears!=null&&v.maximumExperienceYears<v.minimumExperienceYears)c.addIssue({code:'custom',path:['maximumExperienceYears'],message:'Maximum experience cannot be lower than minimum experience.'});});
+export { parseInput };
