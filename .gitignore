@@ -13,3 +13,4 @@ __pycache__/
 storage/*
 !storage/.gitkeep
 postgres-data/
+docs/
